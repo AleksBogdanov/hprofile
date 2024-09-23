@@ -27,22 +27,6 @@ jobs:
         with:
           distribution: 'corretto'
           java-version: '17'
-
-      # 4. Install Dependencies and Tools
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq checkstyle openjdk-17-jdk
-          wget https://dlcdn.apache.org/maven/maven-3/3.9.4/binaries/apache-maven-3.9.4-bin.tar.gz
-          tar xzvf apache-maven-3.9.4-bin.tar.gz
-          sudo ln -s apache-maven-3.9.4 /opt/maven
-          echo "MAVEN_HOME=/opt/maven" >> $GITHUB_ENV
-          echo "/opt/maven/bin" >> $GITHUB_PATH
-          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-3.3.0.1492-linux.zip
-          unzip sonar-scanner-cli-3.3.0.1492-linux.zip
-          sudo ln -s sonar-scanner-3.3.0.1492-linux /opt/sonar-scanner
-          echo "/opt/sonar-scanner/bin" >> $GITHUB_PATH
-
       # 5. Run Maven Tests
       - name: Maven Test
         run: mvn test
@@ -51,30 +35,19 @@ jobs:
       - name: Run Checkstyle
         run: mvn checkstyle:checkstyle
 
-      # 7. SonarCloud Scan
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v2
-        with:
-          organization: ${{ secrets.SONAR_ORGANIZATION }}
-          projectKey: ${{ secrets.SONAR_PROJECT_KEY }}
-          token: ${{ secrets.SONAR_TOKEN }}
-          hostUrl: ${{ secrets.SONAR_URL }}
-          sources: "src/"
-          junitReportsPath: "target/surefire-reports/"
-          jacocoReportsPath: "target/jacoco.exec"
-          checkstyleReportPath: "target/checkstyle-result.xml"
-          javaBinaries: "target/test-classes/com/visualpathit/account/controllerTest/"
-
-      # 8. Evaluate Quality Gate
-      - name: Evaluate Quality Gate
-        run: |
-          sleep 5
-          curl -s https://sonarcloud.io/api/qualitygates/project_status?projectKey=${{ secrets.SONAR_PROJECT_KEY }} > result.json
-          cat result.json
-          STATUS=$(jq -r '.projectStatus.status' result.json)
-          if [ "$STATUS" = "ERROR" ]; then
-            echo "Quality Gate failed."
-            exit 1
-          else
-            echo "Quality Gate passed."
-          fi
+    # Setup sonar-scanner
+      - name: Setup SonarQube
+        uses: warchant/setup-sonar-scanner@v7
+   
+    # Run sonar-scanner
+      - name: SonarQube Scan
+        run: sonar-scanner
+           -Dsonar.host.url=${{ secrets.SONAR_URL }}
+           -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+           -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
+           -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY }}
+           -Dsonar.sources=src/
+           -Dsonar.junit.reportsPath=target/surefire-reports/ 
+           -Dsonar.jacoco.reportsPath=target/jacoco.exec 
+           -Dsonar.java.checkstyle.reportPaths=target/checkstyle-result.xml
+           -Dsonar.java.binaries=target/test-classes/com/visualpathit/account/controllerTest/
