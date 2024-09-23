@@ -27,22 +27,31 @@ jobs:
         with:
           distribution: 'corretto'
           java-version: '17'
-      # 5. Run Maven Tests
+
+      # 4. Run Maven Tests
       - name: Maven Test
         run: mvn test
 
-      # 6. Run Checkstyle
+      # 5. Run Checkstyle
       - name: Run Checkstyle
         run: mvn checkstyle:checkstyle
 
-    # Setup sonar-scanner
+      # 6. Setup SonarQube
       - name: Setup SonarQube
         uses: warchant/setup-sonar-scanner@v7
-   
-    # Run sonar-scanner
+
+      # 7. Verify Secrets (Optional but Recommended)
+      - name: Verify SonarQube Secrets
+        run: |
+          if [ -z "${{ secrets.SONAR_URL }}" ]; then echo "SONAR_URL is not set"; else echo "SONAR_URL is set"; fi
+          if [ -z "${{ secrets.SONAR_TOKEN }}" ]; then echo "SONAR_TOKEN is not set"; else echo "SONAR_TOKEN is set"; fi
+          if [ -z "${{ secrets.SONAR_ORGANIZATION }}" ]; then echo "SONAR_ORGANIZATION is not set"; else echo "SONAR_ORGANIZATION is set"; fi
+          if [ -z "${{ secrets.SONAR_PROJECT_KEY }}" ]; then echo "SONAR_PROJECT_KEY is not set"; else echo "SONAR_PROJECT_KEY is set"; fi
+
+      # 8. SonarQube Scan
       - name: SonarQube Scan
         run: |
-          sonar-scanner \
+          sonar-scanner -X \
             -Dsonar.host.url=${{ secrets.SONAR_URL }} \
             -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
             -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }} \
@@ -51,7 +60,7 @@ jobs:
             -Dsonar.junit.reportsPath=target/surefire-reports/ \
             -Dsonar.jacoco.reportsPath=target/jacoco.exec \
             -Dsonar.java.checkstyle.reportPaths=target/checkstyle-result.xml \
-            -Dsonar.java.binaries=target/test-classes/com/visualpathit/account/controllerTest/
+            -Dsonar.java.binaries=target/classes
         env:
           JAVA_HOME: /opt/hostedtoolcache/Java_Corretto_jdk/17.0.12-7.1/x64
           JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Corretto_jdk/17.0.12-7.1/x64
