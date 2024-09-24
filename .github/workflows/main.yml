@@ -31,7 +31,10 @@ jobs:
       # 5. Setup SonarQube
       - name: Setup SonarQube
         uses: warchant/setup-sonar-scanner@v7
-
+      # 4.1 Test Network Connectivity
+      - name: Test Network Connectivity to SonarCloud
+        run: |
+          curl -I https://sonarcloud.io
       # 6. SonarQube Scan
       - name: SonarQube Scan
         run: |
